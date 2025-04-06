@@ -47,6 +47,6 @@ class ParentNode(HTMLNode):
         for child in self.children:
             html += child.to_html()
         html += f"</{self.tag}>"
-        
+
         return html
 
