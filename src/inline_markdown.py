@@ -95,22 +95,49 @@ def split_nodes_link(old_nodes):
         if old_node.text_type != TextType.TEXT:
             new_nodes.append(old_node)
             continue
-        split_nodes = []
-        sections = extract_markdown_links(old_node.text)
-        for section in sections:
-            text, url = section
-            split_nodes.append(TextNode(text, TextType.LINK, url))
-        new_nodes.extend(split_nodes)
+        
+        text = old_node.text
+        pattern = r"\[(.*?)\]\((.*?)\)"
+        last_index = 0
+        
+        for match in re.finditer(pattern, text):
+            start, end = match.span()
+            # Add text before the link
+            if start > last_index:
+                new_nodes.append(TextNode(text[last_index:start], TextType.TEXT))
+            
+            # Add the link
+            link_text, url = match.groups()
+            new_nodes.append(TextNode(link_text, TextType.LINK, url))
+            
+            last_index = end
+        
+        # Add any remaining text after the last link
+        if last_index < len(text):
+            new_nodes.append(TextNode(text[last_index:], TextType.TEXT))
+    
     return new_nodes
 
 def text_to_textnodes(text):
-    text = text.replace("\n", " ")
-    text = text.replace("\r", "")
-    text = text.replace("\t", "")
-    text = text.strip()
-    if len(text) == 0:
-        return []
-    return [TextNode(text, TextType.TEXT)]
+    # Start with basic text nodes
+    nodes = [TextNode(text, TextType.TEXT)]
+    
+    # Process images first (they have higher precedence)
+    nodes = split_nodes_image(nodes)
+    
+    # Process links
+    nodes = split_nodes_link(nodes)
+    
+    # Process bold text
+    nodes = split_nodes_delimiter(nodes, "**", TextType.BOLD)
+    
+    # Process italic text
+    nodes = split_nodes_delimiter(nodes, "*", TextType.ITALIC)
+
+    # process code text
+    ndoes = split_nodes_delimiter(nodes, "`", TextType.CODE)
+    
+    return nodes
 
 def markdown_to_blocks(markdown):
     # Split the markdown by blank lines
@@ -169,7 +196,8 @@ def markdown_to_html_node(markdown):
     blocks = markdown_to_blocks(markdown)
 
     # Create parent HTML node
-    parent_node = HTMLNode("div", None)
+    parent_node = HTMLNode("div", None, None, [])
+    parent_node.children = []
     
     # Loop over each block
     for block in blocks:
@@ -211,6 +239,7 @@ def markdown_to_html_node(markdown):
 
         elif block_type == BlockType.UNORDERED_LIST:
             ul_node = HTMLNode("ul", None)
+            ul_node.children = []
             # Split block into list items and remove the leading '- ' or '* '
             list_items = [line.lstrip('- *').strip() for line in block.split('\n') if line.strip()]
             
@@ -223,6 +252,7 @@ def markdown_to_html_node(markdown):
 
         elif block_type == BlockType.ORDERED_LIST:
             ol_node = HTMLNode("ol", None)
+            ol_node.children = []
             # Split block into list items and remove the leading numbers and periods
             list_items = []
             for line in block.split('\n'):

@@ -6,9 +6,12 @@ import shutil
 
 
 def main():
-    text_node = TextNode("This is some anchor text", TextType.LINK, "https://www.boot.dev")
-    print(text_node)
     static_to_public()
+    generate_page(
+        "content/index.md",
+        "template.html",
+        "public/index.html"
+    )
 
 #write a recursive func that moves static file to public
 def static_to_public():
@@ -31,7 +34,39 @@ def copy_recursive(src, dest):
             shutil.copy(src_file, dest_file) 
 
 def extract_title(markdown):
-     
+    for line in markdown.splitlines():
+        line = line.strip()
+        if line.startswith("# ") and not line.startswith("##"):  # Check for H1 header
+            return line.lstrip("#").strip()  # Remove '#' and extra spaces
+    raise ValueError("No H1 header found in the markdown")
+
+def generate_page(from_path, template_path, dest_path):
+    print(f"Generating page from {from_path} to {dest_path} using {template_path}")
+    
+    # Read the markdown file
+    with open(from_path, 'r') as markdown_file:
+        markdown_content = markdown_file.read()
+    
+    # Read the template file
+    with open(template_path, 'r') as template_file:
+        template_content = template_file.read()
+    
+    # Convert markdown to HTML
+    html_node = markdown_to_html_node(markdown_content)
+    html_content = html_node.to_html()
+    
+    # Extract the title
+    title = extract_title(markdown_content)
+    
+    # Replace placeholders in the template
+    full_html = template_content.replace("{{ Title }}", title).replace("{{ Content }}", html_content)
+    
+    # Ensure the destination directory exists
+    os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+    
+    # Write the full HTML to the destination file
+    with open(dest_path, 'w') as dest_file:
+        dest_file.write(full_html)
 
 if __name__ == "__main__":
     main()
