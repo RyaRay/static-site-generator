@@ -1,5 +1,35 @@
 import os
+from pathlib import Path
 from markdown_blocks import markdown_to_html_node
+
+
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+    # Create the destination directory if it doesn't exist
+    os.makedirs(dest_dir_path, exist_ok=True)
+    
+    for item in os.listdir(dir_path_content):
+        source_path = os.path.join(dir_path_content, item)
+        
+        # If it's a file
+        if os.path.isfile(source_path):
+            # Only process markdown files
+            if source_path.endswith('.md'):
+                # Change extension from .md to .html while preserving the path
+                file_name = os.path.basename(item)
+                html_file_name = os.path.splitext(file_name)[0] + '.html'
+                dest_file_path = os.path.join(dest_dir_path, html_file_name)
+                
+                # Generate the HTML page
+                generate_page(source_path, template_path, dest_file_path)
+        
+        # If it's a directory, recurse into it
+        else:
+            # Create corresponding subdirectory in destination
+            new_source_dir = source_path
+            new_dest_dir = os.path.join(dest_dir_path, item)
+            
+            # Recursively process the subdirectory
+            generate_pages_recursive(new_source_dir, template_path, new_dest_dir)
 
 
 def generate_page(from_path, template_path, dest_path):
