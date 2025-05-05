@@ -75,3 +75,12 @@ def text_to_textnodes(text):
     if len(text) == 0:
         return []
     return [TextNode(text, TextType.TEXT)]
+
+def markdown_to_blocks(markdown):
+    text_nodes = text_to_textnodes(markdown)
+    text_nodes = split_nodes_link(text_nodes)
+    text_nodes = split_nodes_image(text_nodes)
+    text_nodes = split_nodes_delimiter(text_nodes, "**", TextType.BOLD)
+    text_nodes = split_nodes_delimiter(text_nodes, "_", TextType.ITALIC)
+    text_nodes = split_nodes_delimiter(text_nodes, "`", TextType.CODE)
+    return [text_node_to_html_node(text_node) for text_node in text_nodes]
